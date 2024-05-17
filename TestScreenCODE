@@ -1,0 +1,297 @@
+classdef testScreen < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure      matlab.ui.Figure
+        NameMenu      matlab.ui.container.Menu
+        RememberMenu  matlab.ui.container.Menu
+        Menu3         matlab.ui.container.Menu
+        YesButton     matlab.ui.control.Button
+        NoButton      matlab.ui.control.Button
+        pageNumber    matlab.ui.control.Label
+        NameEnter     matlab.ui.control.EditField
+        Instructions  matlab.ui.control.Label
+        SubmitButton  matlab.ui.control.Button
+    end
+
+    
+    properties (Access = private)
+        hitBox % Previous tab/window
+        inExam3 = false; % exam 3 indicator
+        expected = 93.0; % exam 3 starter value
+    end
+    
+    properties (Access = public)
+        nombre % Name of person taking exam
+        rememName = false; % exam 1 
+        page = 1; % page logger
+        response = false; %exam 2 
+        buttonPressed = false; % exam 2
+        STMscore = 0;% STR = short term memory
+        timeBackwardsMathMM = 0; % MM = mental math
+    end
+    
+    methods (Access = public)
+        
+        function changedScreen1to2 = changeScreen1(app)
+            app.SubmitButton.Visible = 'off';
+            app.Instructions.Visible = 'off';
+            app.NameEnter.Visible = 'off';
+            app.pageNumber.Text = '2';
+            app.page = 2;
+            changedScreen1to2 = true;
+            %%%
+            app.SubmitButton.Visible = 'on';
+            app.Instructions.Visible = 'on';
+            app.SubmitButton.Text = 'Begin';
+            app.Instructions.Text = 'A series of words is about to be shown.';
+            
+        end
+        
+        function changedScreen2to3 = changeScreen2(app)
+            app.NoButton.Visible = 'off';
+            app.YesButton.Visible = 'off';
+            app.page = 3;
+            app.pageNumber.Text = string(app.page);
+            %%%
+            app.Instructions.Text = 'You will now count backwards - Ready?'; % newline...
+            app.SubmitButton.Text = 'Yes';
+            app.SubmitButton.Visible = 'on';
+            app.NameEnter.Visible = 'off'; % UT
+            changedScreen2to3 = true;
+        end
+        
+        function changedScreen3to4 = changeScreen3(app)
+            app.Instructions.Text = 'All done!';
+            changedScreen3to4 = true;
+        end
+    end
+    
+    methods (Access = private)
+        
+        function numCorrect = exam2(app)
+            numCorrect =0; %init 
+            lib = ["Boy","Sensor","Fries","Cheetah","Scissors","Mouse","Hand"];
+            examLib = ["Boy","Death","Hand","Rat","Bat","Fries","Scissors"];
+            tList =   [true, false,   true, false, false, true, true]; 
+            % change to random ^ eventually
+           
+           % show all words in lib
+           app.SubmitButton.Visible = 'off';
+           app.NameEnter.Visible = "on";
+           for i=1:length(lib)
+           app.NameEnter.Value = string(lib(i));
+           pause(1)
+           app.NameEnter.Value = " ";
+           pause(1);
+           end
+           
+           app.Instructions.Text = 'Was the following word displayed?:'; % exam
+           app.YesButton.Visible = 'on';
+           app.NoButton.Visible = 'on';
+           for i = 1:length(examLib)
+           app.NameEnter.Value = string(examLib(i)); % display
+           app.buttonPressed = false;
+           while(app.buttonPressed == false)
+           pause(1);
+           end
+           if(tList(i) == app.response)
+           numCorrect = numCorrect+1; %update correct number
+           end
+           end
+           
+           changeScreen2(app);
+           % NXTSTPS
+           % make this stuff pop up when over threshold 
+           % exam 3 
+           % log the stuff and compare (display stats)
+        end
+        
+        function results = exam3(app)
+            tic
+            app.Instructions.Text = 'Count backwards by 7 starting from 100';
+            app.NameEnter.Value = '';
+            app.NameEnter.Visible = 'on';
+            app.SubmitButton.Text = 'Next';  % countdown instead?
+            app.inExam3 = true;
+            app.YesButton.Visible = 'on'; % testing
+            
+            % get the next exam ready
+            % change3to4
+           
+                                  % next button, or ENTER KEY
+            results = true;
+           
+        end
+        
+        function results = getVal(app)
+            val = app.NameEnter.Value; % timing whole thing for now.
+            app.NoButton.Visible = 'on'; % testing
+            app.NoButton.Text = string(val);
+            val1 = str2double(val);
+            if(val1 == app.expected) % not working
+            % try again
+            
+            app.NoButton.Text = 'correct';
+            app.expected = app.expected - 7;
+            app.NameEnter.Value = '';
+            app.YesButton.Text = string(app.expected);
+              if(app.expected < 75)% end condition, 75 is temporary threshold
+              changeScreen3(app);
+              toc
+              timeElaps = toc;
+              app.timeBackwardsMathMM = timeElaps;
+              end
+            else 
+            % clear it 
+            app.Instructions.Text = 'Try again - backwards from 100 by 7';
+            app.NameEnter.Value = '';
+
+            end
+            results = true;
+        end
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app, hitBox, name, etc)
+            app.hitBox = hitBox;
+            app.nombre = name;
+            app.YesButton.Visible = 'off';
+            app.NoButton.Visible = 'off';
+
+        end
+
+        % Menu selected function: RememberMenu
+        function RememberMenuSelected(app, event)
+            %app.SubmitButton.delete; % next and counter/n...
+            changeScreen1(app);
+            
+        end
+
+        % Button pushed function: SubmitButton
+        function SubmitButtonPushed(app, event)
+         if(app.page == 1) % first exam, name remembrance
+            if (string(app.NameEnter.Value) == app.nombre)
+            app.rememName = true;
+            end
+            changeScreen1(app);
+        elseif(app.page == 2) % second exam, short term memory (words) use tic/toc too
+            app.STMscore= exam2(app);
+         elseif(app.page == 3)
+             if(app.inExam3 == false)
+             exam3(app);
+             else % we are doing exam 3 rn
+             app.YesButton.Text = string(app.expected);
+             getVal(app);   
+             end % else
+        end
+        end
+
+        % Button pushed function: YesButton
+        function YesButtonPushed(app, event)
+            app.response = true;
+            app.buttonPressed = true;
+        end
+
+        % Button pushed function: NoButton
+        function NoButtonPushed(app, event)
+            app.response = false;
+            app.buttonPressed = true;
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create NameMenu
+            app.NameMenu = uimenu(app.UIFigure);
+            app.NameMenu.ForegroundColor = [0 0.4471 0.7412];
+            app.NameMenu.Text = 'Name';
+
+            % Create RememberMenu
+            app.RememberMenu = uimenu(app.UIFigure);
+            app.RememberMenu.MenuSelectedFcn = createCallbackFcn(app, @RememberMenuSelected, true);
+            app.RememberMenu.ForegroundColor = [0.6353 0.0784 0.1843];
+            app.RememberMenu.Text = 'Remember';
+
+            % Create Menu3
+            app.Menu3 = uimenu(app.UIFigure);
+            app.Menu3.Text = 'Menu3';
+
+            % Create SubmitButton
+            app.SubmitButton = uibutton(app.UIFigure, 'push');
+            app.SubmitButton.ButtonPushedFcn = createCallbackFcn(app, @SubmitButtonPushed, true);
+            app.SubmitButton.Position = [260 219 100 23];
+            app.SubmitButton.Text = 'Submit';
+
+            % Create Instructions
+            app.Instructions = uilabel(app.UIFigure);
+            app.Instructions.Position = [203 289 236 100];
+            app.Instructions.Text = 'What is your name?';
+
+            % Create NameEnter
+            app.NameEnter = uieditfield(app.UIFigure, 'text');
+            app.NameEnter.Position = [260 268 100 22];
+
+            % Create pageNumber
+            app.pageNumber = uilabel(app.UIFigure);
+            app.pageNumber.Position = [20 450 25 22];
+            app.pageNumber.Text = '1';
+
+            % Create NoButton
+            app.NoButton = uibutton(app.UIFigure, 'push');
+            app.NoButton.ButtonPushedFcn = createCallbackFcn(app, @NoButtonPushed, true);
+            app.NoButton.Position = [359 186 100 23];
+            app.NoButton.Text = 'No';
+
+            % Create YesButton
+            app.YesButton = uibutton(app.UIFigure, 'push');
+            app.YesButton.ButtonPushedFcn = createCallbackFcn(app, @YesButtonPushed, true);
+            app.YesButton.Position = [161 185 100 23];
+            app.YesButton.Text = 'Yes';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = testScreen(varargin)
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
