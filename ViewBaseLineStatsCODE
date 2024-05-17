@@ -1,0 +1,142 @@
+classdef ViewBaseLineStats < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure              matlab.ui.Figure
+        LastExamDate          matlab.ui.control.Label
+        DiagnosticDate        matlab.ui.control.Label
+        Walk                  matlab.ui.control.Label
+        Day                   matlab.ui.control.Label
+        Count                 matlab.ui.control.Label
+        Words                 matlab.ui.control.Label
+        Name                  matlab.ui.control.Label
+        TextArea              matlab.ui.control.TextArea
+        DropDown              matlab.ui.control.DropDown
+        ShowingStatsforLabel  matlab.ui.control.Label
+        UITable               matlab.ui.control.Table
+    end
+
+    
+    properties (Access = public)
+        infoListp1 = [0, 5, 15, 0, 13]; % Description
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app, app1, playerName)
+            n = 1;
+            app.Name.Text = string(app.infoListp1(n)); % NA
+            n= n+1;
+            app.Words.Text = "N/A"; % make this part modular
+            n=n+1;
+            app.Count.Text = string(app.infoListp1(n));
+            n=n+1;
+            app.Day.Text = "N/A"; %NA
+            n=n+1;
+            app.Walk.Text = string(app.infoListp1(n));
+
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create UITable
+            app.UITable = uitable(app.UIFigure);
+            app.UITable.ColumnName = {'Activity'; 'Baseline'; 'Diagnostic Date'; 'Last Exam'};
+            app.UITable.RowName = {};
+            app.UITable.Position = [8 48 625 387];
+
+            % Create ShowingStatsforLabel
+            app.ShowingStatsforLabel = uilabel(app.UIFigure);
+            app.ShowingStatsforLabel.Position = [109 448 102 22];
+            app.ShowingStatsforLabel.Text = 'Showing Stats for:';
+
+            % Create DropDown
+            app.DropDown = uidropdown(app.UIFigure);
+            app.DropDown.Position = [233 448 100 22];
+
+            % Create TextArea
+            app.TextArea = uitextarea(app.UIFigure);
+            app.TextArea.Position = [17 48 122 361];
+            app.TextArea.Value = {'Name'; ''; 'Words Remembered'; ''; 'Time for counting'; ''; 'Day/month'; ''; 'Walk'; ''};
+
+            % Create Name
+            app.Name = uilabel(app.UIFigure);
+            app.Name.Position = [200 387 25 22];
+            app.Name.Text = 'N/A';
+
+            % Create Words
+            app.Words = uilabel(app.UIFigure);
+            app.Words.Position = [196 357 48 22];
+            app.Words.Text = 'Number';
+
+            % Create Count
+            app.Count = uilabel(app.UIFigure);
+            app.Count.Position = [200 328 56 22];
+            app.Count.Text = 'Long Day';
+
+            % Create Day
+            app.Day = uilabel(app.UIFigure);
+            app.Day.Position = [203 307 25 22];
+            app.Day.Text = 'N/A';
+
+            % Create Walk
+            app.Walk = uilabel(app.UIFigure);
+            app.Walk.Position = [203 272 57 22];
+            app.Walk.Text = 'WalkTime';
+
+            % Create DiagnosticDate
+            app.DiagnosticDate = uilabel(app.UIFigure);
+            app.DiagnosticDate.Position = [349 378 77 22];
+            app.DiagnosticDate.Text = '05/27/2005';
+
+            % Create LastExamDate
+            app.LastExamDate = uilabel(app.UIFigure);
+            app.LastExamDate.Position = [502 378 79 22];
+            app.LastExamDate.Text = '05/15/24';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = ViewBaseLineStats(varargin)
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
