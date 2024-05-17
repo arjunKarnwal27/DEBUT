@@ -1,0 +1,165 @@
+classdef hitBox < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure  matlab.ui.Figure
+        Button_4  matlab.ui.control.Button
+        Button_3  matlab.ui.control.Button
+        Button_2  matlab.ui.control.Button
+        Button    matlab.ui.control.Button
+        TextArea  matlab.ui.control.TextArea
+        HITDETECTEDThefollowingplayerswereinvolvedLabel  matlab.ui.control.Label
+    end
+
+    
+    properties (Access = private)
+        app1 % Description
+        numHit = 0; % should be public?
+    end
+    
+    methods (Access = public)
+        
+        function outputStr = convertToStr(app,list) %#ok<INUSD,INUSD>
+            outputStr = "";
+            for i = 1:app.numHit % change the 3
+                if(i == 1)
+                app.Button_3.Text = string(app.numHit); % testing
+                outputStr = string(list(i));
+                else
+                app.Button_2.Text = 'opg'; % testing - UT1
+                outputStr = outputStr + newline + string(list(i));
+                end
+            end
+            
+          
+        end
+        
+        function r = disableButtons(app)
+            n = app.numHit;
+
+            if(n < 2)
+            app.Button_2.Enable = 'off';
+            end
+            if(n < 3)
+            app.Button_3.Enable = 'off';
+            end
+            if(n < 4)
+            app.Button_4.Enable = 'off';
+                    
+            end
+            r = true;
+        end
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app, app1, involved)
+           app.app1 = app1;
+          
+            % NXTSTP: clean 0s (faster)
+            N = length(involved);
+            names = cell(1,N);
+            counter = 1;    
+            for i=1:length(involved)
+            if(involved(i,1) ~= 0)
+                names{counter} = {app.app1.roster(involved(i,1))};
+                app.Button.Text = 'gottem';
+                counter = counter+1;
+            end
+            end
+            
+            app.numHit = counter-1;
+            app.TextArea.Value = convertToStr(app,names); %convert not
+            %working...
+            %app.TextArea.Value = string(counter);
+            %app.TextArea.Value = string(counter);
+           
+            
+           
+            %app.TextArea.Value = string(app.numHit);
+            %app.TextArea.Value = string(names(1));
+            disableButtons(app)
+        end
+
+        % Button pushed function: Button
+        function ButtonPushed(app, event)
+            testScreen(app,'hi','bye')
+            app.Button.Enable = 'off';
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create HITDETECTEDThefollowingplayerswereinvolvedLabel
+            app.HITDETECTEDThefollowingplayerswereinvolvedLabel = uilabel(app.UIFigure);
+            app.HITDETECTEDThefollowingplayerswereinvolvedLabel.Position = [266 393 199 72];
+            app.HITDETECTEDThefollowingplayerswereinvolvedLabel.Text = {'HIT DETECTED'; ''; 'The following players were involved:'};
+
+            % Create TextArea
+            app.TextArea = uitextarea(app.UIFigure);
+            app.TextArea.FontSize = 17;
+            app.TextArea.Position = [186 262 269 124];
+
+            % Create Button
+            app.Button = uibutton(app.UIFigure, 'push');
+            app.Button.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
+            app.Button.Position = [87 363 100 23];
+
+            % Create Button_2
+            app.Button_2 = uibutton(app.UIFigure, 'push');
+            app.Button_2.IconAlignment = 'center';
+            app.Button_2.Position = [87 343 100 23];
+
+            % Create Button_3
+            app.Button_3 = uibutton(app.UIFigure, 'push');
+            app.Button_3.Position = [87 324 100 23];
+
+            % Create Button_4
+            app.Button_4 = uibutton(app.UIFigure, 'push');
+            app.Button_4.Position = [87 304 100 23];
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = hitBox(varargin)
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
