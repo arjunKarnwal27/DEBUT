@@ -1,0 +1,224 @@
+classdef app1 < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure    matlab.ui.Figure
+        TestButton  matlab.ui.control.Button
+        STOPButton  matlab.ui.control.Button
+        READButton  matlab.ui.control.Button
+        UIAxes2     matlab.ui.control.UIAxes
+        UIAxes      matlab.ui.control.UIAxes
+    end
+
+    
+    properties (Access = private)
+        keepGoing = true; % while play is still going
+        threshold = 900; %threshold for hit
+        currIndex = 1;
+    end
+    
+    properties (Access = public)
+         
+        numPlayers = 5; % num players on a team
+        listInvolved =  zeros(5,1); % 5 must be a number not variable... ?
+        roster = ["P1","P2","P3","P4","PS5"]; % just gonna use index of person.
+    end
+    
+    methods (Access = public)
+        
+        function check = checkForHit(app,val,playerNum)
+            if(val > app.threshold) % NXTSTP: keep reporting data for a few sec
+                %app.keepGoing = false;
+                app.UIFigure.Color = [1.00,0.00,0.00]; % turning to red
+                check = true;
+                str = ["Mercury","Gemini","Tim"];
+                app.listInvolved(app.currIndex) = playerNum;
+                app.currIndex = app.currIndex+1;
+              %  hitBox(app,str) after all checks, check if playernum = 0
+              %  or smth 
+            else
+                check = false;
+            end
+            
+        end
+    end
+
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Button pushed function: READButton
+        function READButtonPushed(app, event)
+            log1Checked = false;
+            log2Checked = false;
+            firstIteration = false;
+            clear a;
+            delete(instrfindall); %#ok<INSTFA> % try removing 
+            clc;
+            a = arduino('COM12'); % needs a few min on startup
+           
+            % p1
+            app.UIAxes.YLim = [0 1019];
+            h1 = animatedline(app.UIAxes); % top left graph
+            
+            % p2 
+            app.UIAxes2.YLim = [0 1019];
+            h2 = animatedline(app.UIAxes2); % top right graph
+            
+            tim = 0;
+            startTime = datetime('now');
+            wasTrue = false;
+            while (app.keepGoing == true)
+            % A0, player 1 
+            v1 = readVoltage(a,'A0');
+            t =  datetime('now') - startTime;
+            pressure = interp1([0, 5],[0, 1019], v1); % check upper limit 
+            time = datenum(t); %#ok<DATNM>
+            addpoints(h1,time,pressure); 
+            app.UIAxes.XLim =  datenum([t-seconds(10) t]); %#ok<DATNM>
+            datetick(app.UIAxes,'x','keeplimits');
+            if(log1Checked == false)
+            hitPresent1 = checkForHit(app,pressure,1);
+            end
+            
+            if(hitPresent1 == true)
+            wasTrue = true;
+            log1Checked = true;
+            end
+            % create window...
+            
+            %A1, player 2
+            v2 = readVoltage(a,'A1');
+            pressure2 = interp1([0, 3.3],[0, 1019], v2);
+            addpoints(h2,time,pressure2);
+            app.UIAxes2.XLim =  datenum([t-seconds(10) t]); %#ok<DATNM>
+            datetick(app.UIAxes2,'x','keeplimits');
+            if(log2Checked == false)
+            hitPresent = checkForHit(app,pressure2,2);
+            end
+            if(hitPresent == true)
+            wasTrue = true;
+            log2Checked = true;
+            end
+            
+            if(wasTrue == true)
+                tic % start timer for wind
+                if(firstIteration == false)
+                firstIteration = true;
+                startTime12 = datetime('now');
+                else
+                tim =  (startTime12 - datetime('now'));
+                
+                end
+
+                %app.keepGoing = false;
+                %hitBox(app,app.listInvolved)
+                tim2 = datenum(tim) * -100000;
+                if(tim2 > 4) % 4 is temporary window length (4 seconds)
+                app.keepGoing = false;
+                hitBox(app,app.listInvolved)
+                
+                end
+                app.TestButton.Text = string(tim2);
+            end
+
+            drawnow limitrate
+% resume feature...
+            end
+
+        end
+
+        % Button pushed function: STOPButton
+        function STOPButtonPushed(app, event)
+            app.keepGoing = false;
+        end
+
+        % Button pushed function: TestButton
+        function TestButtonPushed(app, event)
+            app.UIFigure.Color = [1.00,0.00,0.00]; % red
+            str = ["Mercury","Gemini","Tim"];
+            %testScreen(app,'hi','bye')
+            hitBox(app,str)
+            %ViewBaseLineStats(app,'pname');
+
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Color = [1 1 1];
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.UIFigure);
+            title(app.UIAxes, 'Player 1')
+            xlabel(app.UIAxes, 'Time')
+            ylabel(app.UIAxes, 'Pressure')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Position = [18 264 272 161];
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.UIFigure);
+            title(app.UIAxes2, 'Player 2')
+            xlabel(app.UIAxes2, 'Time')
+            ylabel(app.UIAxes2, 'Pressure')
+            zlabel(app.UIAxes2, 'Z')
+            app.UIAxes2.Position = [350 252 279 173];
+
+            % Create READButton
+            app.READButton = uibutton(app.UIFigure, 'push');
+            app.READButton.ButtonPushedFcn = createCallbackFcn(app, @READButtonPushed, true);
+            app.READButton.Tag = 'read_button';
+            app.READButton.Position = [129 196 100 23];
+            app.READButton.Text = 'READ';
+
+            % Create STOPButton
+            app.STOPButton = uibutton(app.UIFigure, 'push');
+            app.STOPButton.ButtonPushedFcn = createCallbackFcn(app, @STOPButtonPushed, true);
+            app.STOPButton.Position = [313 195 100 23];
+            app.STOPButton.Text = 'STOP';
+
+            % Create TestButton
+            app.TestButton = uibutton(app.UIFigure, 'push');
+            app.TestButton.ButtonPushedFcn = createCallbackFcn(app, @TestButtonPushed, true);
+            app.TestButton.BackgroundColor = [0 1 1];
+            app.TestButton.Position = [229 129 100 23];
+            app.TestButton.Text = 'Test';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = app1
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
